@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String    @id @default(uuid())
+  createdAt          DateTime  @default(now())
+  name               String?   @db.VarChar(255)
+  email              String    @unique
+  password           String?
+  googleId           String?   @unique
+  githubId           String?   @unique
+  profilePicture     String?
+  googleAccessToken  String?
+  googleRefreshToken String?
+  githubAccessToken  String?
+  githubRefreshToken String?
+  role               Role
+  post               Post[]    @relation("CreatedPost")
+  comment            Comment[] @relation("CreatedComment")
+
+  @@index([email])
+}
+
+model Post {
+  id            String    @id @default(uuid())
+  createdAt     DateTime  @default(now())
+  pubStatus     PubStatus @default(NOT_PUBLISHED)
+  title         String    @db.VarChar(100)
+  publishedAt   DateTime?
+  updatedAt     DateTime  @updatedAt
+  comment       Comment[] @relation("Post")
+  commentId     String
+  author        User      @relation("CreatedPost", fields: [authorId], references: [id])
+  authorId      String
+  content       String
+  thumbnailLink String?
+
+  @@index([createdAt, pubStatus])
+}
+
+enum PubStatus {
+  PUBLISHED
+  NOT_PUBLISHED
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  USER
+}
+
+model Comment {
+  id          String    @id @unique @default(uuid())
+  createdAt   DateTime  @default(now())
+  commenter   User      @relation("CreatedComment", fields: [commenterId], references: [id])
+  commenterId String
+  comment     String
+  post        Post      @relation("Post", fields: [postId], references: [id])
+  postId      String
+  parent      Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  parentId    String?
+  children    Comment[] @relation("CommentReplies")
+
+  @@index([createdAt, commenterId, postId])
+}
